@@ -14,54 +14,29 @@ export type SnippetCategory =
  * Valid snippet IDs - use this type for type-safe snippet references
  */
 export type SnippetId =
-  // Getting Started
-  | "install-libraries"
-  | "init-wallet"
-  | "builder-skill"
-  // REPL
-  | "browser-console"
-  | "available-globals"
-  // Basics
-  | "get-balance"
-  | "get-info"
-  | "list-transactions"
-  // Payments
+  | "fetch-with-l402"
   | "make-invoice"
   | "pay-invoice"
-  | "pay-keysend"
-  // Invoices
-  | "lookup-invoice"
-  | "decode-invoice"
-  | "validate-preimage"
-  // Lightning Address
   | "fetch-lightning-address"
-  | "request-invoice-from-address"
-  | "pay-lightning-address"
-  | "lnurl-verify"
-  // Fiat
-  | "get-fiat-currencies"
-  | "sats-to-fiat"
-  | "fiat-to-sats"
-  | "get-btc-rate"
-  // Advanced
-  | "subscribe-notifications"
+  | "wrapped-hold-invoice"
   | "subscribe-hold-notifications"
-  | "multi-pay"
-  | "sign-message"
-  | "hold-invoice"
   | "hold-invoice-settle"
   | "hold-invoice-cancel"
-  | "wrapped-hold-invoice"
-  // Bitcoin Connect
+  | "subscribe-notifications"
+  | "pay-lightning-address"
+  | "hold-invoice"
   | "bc-init"
   | "bc-button"
-  | "bc-on-connected"
-  | "bc-on-disconnected"
   | "bc-launch-modal"
   | "bc-disconnect"
   | "bc-pay-button"
   | "bc-launch-payment-modal"
-  | "fetch-with-l402";
+  | "bc-on-connected"
+  | "bc-on-disconnected"
+  | "lookup-invoice"
+  | "request-invoice-from-address"
+  | "lnurl-verify"
+  | "validate-preimage";
 
 export type CodeLanguage = "javascript" | "typescript" | "bash";
 
@@ -92,131 +67,6 @@ export const SNIPPET_CATEGORIES: {
 ];
 
 export const CODE_SNIPPETS: CodeSnippet[] = [
-  {
-    id: "builder-skill",
-    title: "Alby Bitcoin Builder Skill",
-    description:
-      "Turn your favorite agent into a bitcoin app builder. Run the following command inside your Shopstr marketplace project:",
-    category: "getting-started",
-    language: "bash",
-    code: `npx skills add getAlby/builder-skill
-
-# No need to follow the code examples below. Jump directly to the example prompts!
-`,
-  },
-  {
-    id: "install-libraries",
-    title: "Manual Install",
-    description:
-      "Install the Alby SDK and Lightning Tools packages for Shopstr marketplace integration. The SDK provides wallet connectivity via Nostr Wallet Connect, while Lightning Tools offers utilities like invoice decoding, lightning address resolution, and fiat conversion.",
-    category: "getting-started",
-    language: "bash",
-    code: `npm install @getalby/sdk @getalby/lightning-tools
-
-# README links:
-# @getalby/sdk: https://github.com/getAlby/js-sdk
-# @getalby/lightning-tools: https://github.com/getAlby/lightning-tools`,
-  },
-  {
-    id: "init-wallet",
-    title: "Initialize a Wallet",
-    description:
-      "Connect to a wallet using a Nostr Wallet Connect (NWC) connection string.",
-    category: "getting-started",
-    code: `import { nwc } from "@getalby/sdk"
-
-// Create a NWC client with your connection secret
-const client = new nwc.NWCClient({
-  nostrWalletConnectUrl: "nostr+walletconnect://...",
-})
-
-// Verify the connection
-const info = await client.getInfo()
-console.log('Connected to:', info.alias)
-
-const balance = await client.getBalance()
-console.log('Balance:', Math.floor(balance.balance / 1000), 'sats')
-
-// README links:
-// @getalby/sdk: https://github.com/getAlby/js-sdk
-// @getalby/lightning-tools: https://github.com/getAlby/lightning-tools`,
-  },
-  // REPL
-  {
-    id: "browser-console",
-    title: "Using the Browser Console",
-    description:
-      "Open DevTools (F12 or Cmd+Opt+I) and use the Console tab to interact with Shopstr marketplace wallets",
-    code: `// Open browser DevTools: F12 or Cmd+Opt+I (Mac) / Ctrl+Shift+I (Windows)
-// Once wallets are connected, they're available as globals:
-// alice, bob, charlie, david
-
-// Try these commands after connecting a wallet:
-await alice.getBalance()
-await alice.getInfo()`,
-    category: "repl",
-  },
-  {
-    id: "available-globals",
-    title: "Available Globals",
-    description: "Quick reference of all globals exposed on the window object",
-    code: `// Wallet clients (when connected):
-alice, bob, charlie, david
-
-// Lightning tools:
-LightningAddress  // Fetch and interact with lightning addresses
-Invoice           // Decode BOLT-11 invoices
-
-// Fiat utilities:
-getFiatValue({ satoshi: 1000, currency: 'USD' })
-getSatoshiValue({ amount: 10, currency: 'USD' })
-getFiatBtcRate('USD')
-
-// Namespaced access:
-alby.wallets.alice
-alby.tools.LightningAddress`,
-    category: "repl",
-  },
-
-  // Basics
-  {
-    id: "get-balance",
-    title: "Get Wallet Balance",
-    description: "Fetch the current balance of a connected wallet",
-    code: `const result = await alice.getBalance()
-// NWC returns balance in millisatoshis (1 sat = 1000 msats)
-const balanceSats = Math.floor(result.balance / 1000)
-console.log('Balance:', balanceSats, 'sats')`,
-    category: "basics",
-  },
-  {
-    id: "get-info",
-    title: "Get Wallet Info",
-    description:
-      "Get information about the connected wallet and its capabilities",
-    code: `const info = await alice.getInfo()
-console.log('Alias:', info.alias)
-console.log('Network:', info.network)
-console.log('Methods:', info.methods)`,
-    category: "basics",
-  },
-  {
-    id: "list-transactions",
-    title: "List Transactions",
-    description: "Get transaction history from the wallet",
-    code: `const { transactions } = await alice.listTransactions({
-  limit: 10,
-  type: 'incoming', // or 'outgoing'
-})
-
-transactions.forEach(tx => {
-  // amount is in millisatoshis
-  const amountSats = Math.floor(tx.amount / 1000)
-  console.log(tx.type, amountSats, 'sats', tx.description)
-})`,
-    category: "basics",
-  },
-
   // Payments
   {
     id: "make-invoice",
@@ -249,22 +99,35 @@ const feesSats = Math.floor(result.fees_paid / 1000)
 console.log('Fees paid:', feesSats, 'sats')`,
     category: "payments",
   },
-  {
-    id: "pay-keysend",
-    title: "Pay via Keysend",
-    description:
-      "Send a spontaneous payment without an invoice (useful for instant seller payouts on Shopstr)",
-    code: `// NWC uses millisatoshis: 1 sat = 1000 msats
-const amountSats = 1000
-const result = await alice.payKeysend({
-  amount: amountSats * 1000, // convert sats to msats
-  destination: '02...', // node pubkey
-  // Optional: custom TLV records
-  // tlv_records: [{ type: 5482373484, value: 'hello' }]
-})
 
-console.log('Preimage:', result.preimage)`,
-    category: "payments",
+  // Lightning Address
+  {
+    id: "fetch-lightning-address",
+    title: "Fetch Lightning Address",
+    description: "Lookup a lightning address and get its metadata",
+    code: `const ln = new LightningAddress('hello@getalby.com')
+await ln.fetch()
+
+console.log('Domain:', ln.domain)
+console.log('Username:', ln.username)
+console.log('Keysend pubkey:', ln.keysendPubkey)
+console.log('Min sendable:', ln.lnurlpData?.minSendable)
+console.log('Max sendable:', ln.lnurlpData?.maxSendable)`,
+    category: "lightning-address",
+  },
+  {
+    id: "pay-lightning-address",
+    title: "Pay Lightning Address",
+    description: "Send a payment directly to a lightning address",
+    code: `const ln = new LightningAddress('hello@getalby.com')
+await ln.fetch()
+
+// Request invoice and pay in one step
+const invoice = await ln.requestInvoice({ satoshi: 1000 })
+const result = await alice.payInvoice({ invoice: invoice.paymentRequest })
+
+console.log('Paid! Preimage:', result.preimage)`,
+    category: "lightning-address",
   },
 
   // Invoices
@@ -287,20 +150,6 @@ console.log('Paid:', result.settled_at !== undefined)
 // amount is in millisatoshis
 const amountSats = Math.floor(result.amount / 1000)
 console.log('Amount:', amountSats, 'sats')`,
-    category: "invoices",
-  },
-  {
-    id: "decode-invoice",
-    title: "Decode Invoice",
-    description:
-      "Parse and decode a BOLT-11 invoice to inspect marketplace transaction details",
-    code: `const invoice = new Invoice({ pr: 'lnbc...' })
-
-console.log('Amount:', invoice.satoshi, 'sats')
-console.log('Description:', invoice.description)
-console.log('Expires:', invoice.expiry, 'seconds')
-console.log('Payment hash:', invoice.paymentHash)
-console.log('Destination:', invoice.payeePubkey)`,
     category: "invoices",
   },
   {
@@ -327,20 +176,6 @@ if (isValid) {
 
   // Lightning Address
   {
-    id: "fetch-lightning-address",
-    title: "Fetch Lightning Address",
-    description: "Lookup a lightning address and get its metadata",
-    code: `const ln = new LightningAddress('hello@getalby.com')
-await ln.fetch()
-
-console.log('Domain:', ln.domain)
-console.log('Username:', ln.username)
-console.log('Keysend pubkey:', ln.keysendPubkey)
-console.log('Min sendable:', ln.lnurlpData?.minSendable)
-console.log('Max sendable:', ln.lnurlpData?.maxSendable)`,
-    category: "lightning-address",
-  },
-  {
     id: "request-invoice-from-address",
     title: "Request Invoice from Address",
     description: "Request a payment invoice from a lightning address",
@@ -357,20 +192,6 @@ console.log('Payment hash:', invoice.paymentHash)
 
 // Now you can pay it:
 // await alice.payInvoice({ invoice: invoice.paymentRequest })`,
-    category: "lightning-address",
-  },
-  {
-    id: "pay-lightning-address",
-    title: "Pay Lightning Address",
-    description: "Send a payment directly to a lightning address",
-    code: `const ln = new LightningAddress('hello@getalby.com')
-await ln.fetch()
-
-// Request invoice and pay in one step
-const invoice = await ln.requestInvoice({ satoshi: 1000 })
-const result = await alice.payInvoice({ invoice: invoice.paymentRequest })
-
-console.log('Paid! Preimage:', result.preimage)`,
     category: "lightning-address",
   },
   {
@@ -400,59 +221,6 @@ if (isPaid && invoice.preimage) {
     category: "lightning-address",
   },
 
-  // Fiat Conversion
-  {
-    id: "get-fiat-currencies",
-    title: "Get Available Currencies",
-    description: "Fetch the list of supported fiat currencies for conversion",
-    code: `import { getFiatCurrencies } from '@getalby/lightning-tools/fiat'
-
-const currencies = await getFiatCurrencies()
-
-// currencies is an array of { code, name, symbol, priority }
-currencies.forEach(currency => {
-  console.log(currency.code, currency.name, currency.symbol)
-})
-// e.g., "USD", "US Dollar", "$"`,
-    category: "fiat",
-  },
-  {
-    id: "sats-to-fiat",
-    title: "Convert Sats to Fiat",
-    description: "Convert a satoshi amount to fiat currency",
-    code: `const fiatValue = await getFiatValue({
-  satoshi: 10000,
-  currency: 'USD', // or 'EUR', 'GBP', etc.
-})
-
-console.log('10,000 sats =', fiatValue.toFixed(2), 'USD')`,
-    category: "fiat",
-  },
-  {
-    id: "fiat-to-sats",
-    title: "Convert Fiat to Sats",
-    description: "Convert a fiat amount to satoshis",
-    code: `const satoshis = await getSatoshiValue({
-  amount: 10, // fiat amount
-  currency: 'USD',
-})
-
-console.log('$10 =', satoshis, 'sats')`,
-    category: "fiat",
-  },
-  {
-    id: "get-btc-rate",
-    title: "Get BTC Exchange Rate",
-    description: "Fetch the current BTC price in a fiat currency",
-    code: `const rate = await getFiatBtcRate('USD')
-console.log('1 BTC =', rate.toLocaleString(), 'USD')
-
-// Calculate sat price
-const satPrice = rate / 100_000_000
-console.log('1 sat =', satPrice.toFixed(8), 'USD')`,
-    category: "fiat",
-  },
-
   // Advanced
   {
     id: "subscribe-notifications",
@@ -475,40 +243,6 @@ const unsub = await alice.subscribeNotifications(
 
 // To unsubscribe later:
 // unsub()`,
-    category: "advanced",
-  },
-  {
-    id: "multi-pay",
-    title: "Multi-Pay (Batch Payments)",
-    description: "Send multiple payments in a single call",
-    code: `const invoices = [
-  { invoice: 'lnbc1...', amount: 1000 },
-  { invoice: 'lnbc2...', amount: 2000 },
-  { invoice: 'lnbc3...', amount: 3000 },
-]
-
-const results = await alice.multiPayInvoice({ invoices })
-
-results.forEach((result, i) => {
-  if (result.preimage) {
-    console.log('Payment', i + 1, 'succeeded')
-  } else {
-    console.log('Payment', i + 1, 'failed:', result.error)
-  }
-})`,
-    category: "advanced",
-  },
-  {
-    id: "sign-message",
-    title: "Sign Message",
-    description: "Sign a message with the wallet node key",
-    code: `const { signature, message } = await alice.signMessage({
-  message: 'Hello, Lightning!',
-})
-
-console.log('Signature:', signature)
-
-// The signature can be verified by anyone who knows your node pubkey`,
     category: "advanced",
   },
   {
