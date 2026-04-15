@@ -1,7 +1,8 @@
 {
-  "name": "shopstr-lightning-playground",
+  "name": "shopstr-sandbox",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "Shopstr Sandbox — Explore Nostr Commerce Scenarios. Interactive demo of Lightning payments, Nostr protocols, and Bitcoin-native revenue models for the Shopstr marketplace.",
   "type": "module",
   "scripts": {
     "dev": "vite",
