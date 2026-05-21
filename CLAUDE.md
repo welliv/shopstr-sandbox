@@ -1,86 +1,67 @@
-# Alby Sandbox - Development Guide
+# Shopstr Commerce Sandbox — Development Guide
 
 ## Project Overview
 
-Educational Lightning Network payment demo application. Allows users to try scenarios that simulate
-Lightning payments between wallets and learn about usecases supported by Alby
-development tools and NWC wallets such as Alby Hub. Helps developers explore
-and understand Lightning payment flows and capabilities.
+Educational Nostr Commerce + Lightning demo. Users explore all 22 Nostr commerce scenarios (identity, listings, payments, escrow, reviews, Q&A, reports, zaps, subscriptions, carts, fees, L402, notifications, disputes) alongside 19 inherited Alby Lightning scenarios.
+
+Forked from https://github.com/getAlby/sandbox — all Lightning scenarios kept intact.
 
 ## Architecture
 
 - Package Manager: Yarn
-- Frontend: React + TypeScript
-- UI Components: Shadcn
-- Lightning: Nostr Wallet Connect (NWC) protocol
-- Visualization: Multiple tabs (Log, Flow Diagram, Balance Chart, Network Graph)
-- MCP: Shadcn MCP installed (for UI development assistance)
-- Skills: Alby Agent skill installed (for wallet functionality implementation)
+- Frontend: React 19 + TypeScript + Vite
+- UI: Shadcn/ui (Radix primitives)
+- Styling: Tailwind CSS v4
+- State: Zustand (7 stores)
+- Lightning: Nostr Wallet Connect (NWC) via @getalby/sdk
+- Nostr: nostr-tools (browser-native — no node:fs, no node:crypto)
+- Visualization: Log, Flow Diagram, Balance Chart, Nostr Events, Code, Prompts, Production
 
-## Current UI/UX Requirements
+## Stores
 
-### Wallet System
+- `wallet-store.ts` — NWC connections, balances, NWCClient instances
+- `nostr-store.ts` — Nostr keypair identities per role (merchant/buyer/arbitrator)
+- `scenario-store.ts` — current scenario
+- `transaction-store.ts` — tx log, flow steps, balance history
+- `hold-invoice-store.ts` — shared hold invoice state
+- `wrapped-invoice-store.ts` — shared wrapped invoice state
+- `ui-store.ts` — active visualization tab
 
-- Each scenario determines the number of wallets required
-- Display as cards showing balance, connection status
-- Wallets: Alice 👩, Bob 👨‍🦱, Charlie 👨‍🦰, David 👱‍♂️ (as needed per scenario)
+## Scenario Sections
 
-Instant test wallets can be created with a single command (as per the Alby skill - here should be a single button that the user can do which will do a FETCH POST call to create the wallet).
+- `scenarios` — Lightning scenarios (19 Alby scenarios, unchanged)
+- `nostr` — Nostr Commerce scenarios (22 new scenarios)
+- `402` — L402/402 scenarios (3 Alby scenarios, unchanged)
+- `bitcoin-connect` — Bitcoin Connect scenarios (3 Alby scenarios, unchanged)
 
-Wallets are saved to local storage under key wallet-N (wallet-1, etc).
+## Nostr Scenario Pattern
 
-### Visualization Tabs (bottom half of screen)
+Every Nostr scenario:
+1. Entry in `src/data/nostr-scenarios.ts`
+2. Component in `src/components/scenarios/nostr/nostr-*.tsx`
+3. Exported from `src/components/scenarios/nostr/index.ts`
+4. Case in `src/components/scenario-panel.tsx`
+5. Uses NostrIdentityCard from `src/components/nostr/`
+6. Fires to useTransactionStore and useNostrStore
 
-1. **Transaction Log** - Chronological list of events
-2. **Flow Diagram** - Step-by-step visual sequence of payment interactions
-3. **Balance Chart** - Line graph showing balance changes over time
-4. **Network Graph** - Topology view of wallet connections and payment paths
+## Nostr Identities
 
-Visualization should update in real-time.
+Nostr scenarios use keypairs, not NWC connections. The useNostrStore manages them:
+- generateIdentityForRole(role, label, emoji) — generates + persists keypair
+- getPrivateKey(role) — returns Uint8Array for signing
+- publishNostrEvent(role, template) — signs + publishes to relays
 
-### Design Goals
+Roles: merchant, buyer, arbitrator, reporter, seller
 
-- Fast demo starts
-- Multiple learning modalities (visual, textual, graph-based)
-- Support scenarios with 2-4 wallets
-- Clear educational flow
-- Scenarios should be sorted from simplest to most complicated
-- Showcase Alby development capabilities
+## Key Libraries
 
-## Key Components
-
-- WalletCard: Individual wallet display with status
-- TransactionLog: Event timeline
-- FlowDiagram: Sequential interaction visualizer
-- BalanceChart: Historical balance tracking
-
-## Development Notes
-
-- Prioritize user experience speed over configurability initially
-- Keep UI clean and educational-focused
-- Ensure all visualizations update in real-time as transactions occur
-- Leverage Shadcn MCP for UI component development
-- Use Alby Agent skill for wallet integration guidance
+- `src/lib/nostr.ts` — browser-native Nostr utilities (identity, publish, NIP-59 gift wrap, NIP-05, trust score, zap requests, reports, Q&A, preimage verification)
+- `nostr-tools` — core Nostr protocol (generateSecretKey, finalizeEvent, verifyEvent, nip44, SimplePool)
+- `@getalby/lightning-tools` — LightningAddress for LNURL payments and zaps
 
 ## Commands
 
 - `yarn dev` — start dev server
-- `yarn typecheck` — TypeScript type-check (no emit)
-- `yarn build` — full build (tsc + vite)
+- `yarn typecheck` — TypeScript check
+- `yarn build` — full build
 - `yarn lint` — ESLint
-
-## Scenarios
-
-Each scenario has a title, description, education (content for the user to be displayed), and complexity. More complex scenarios should be lower in the list.
-
-## User Flow
-
-When user first opens app they will be presented with the first scenario.
-
-Before they can execute the scenario they must connect the wallets required by the scenario.
-
-## Referenced documentation
-
-- Make sure to use the Alby Agent Skill.
-- Read the [design docs folder](./docs/design/) when working on the design
-- Read the [scenarios docs folder](./docs/scenarios/) when working on payment scenarios

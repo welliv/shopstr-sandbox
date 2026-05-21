@@ -22,6 +22,15 @@ import {
   PaymentModalScenario,
 } from "./bitcoin-connect";
 import { L402FetchScenario, X402FetchScenario, MPPFetchScenario } from "./402";
+import {
+  NostrIdentityScenario, NostrListingScenario, NostrExpirationScenario,
+  NostrDiscoveryScenario, NostrVerificationScenario, NostrEncryptedOrderScenario,
+  NostrDirectPaymentScenario, NostrEscrowScenario, NostrProofOfPaymentScenario,
+  NostrReviewsScenario, NostrQAScenario, NostrReportScenario, NostrZapsScenario,
+  NostrPrismsScenario, NostrSubscriptionsScenario, NostrCartScenario,
+  NostrPlatformFeesScenario, NostrZapvertisingScenario, NostrFiatScenario,
+  NostrL402Scenario, NostrNotificationsScenario, NostrDisputesScenario,
+} from "./scenarios/nostr";
 
 export function ScenarioPanel() {
   const { currentScenario } = useScenarioStore();
@@ -69,6 +78,51 @@ export function ScenarioPanel() {
       return <X402FetchScenario />;
     case "mpp-fetch":
       return <MPPFetchScenario />;
+    // ── Nostr Commerce ────────────────────────────────────────────────────────
+    case "nostr-identity":
+      return <NostrIdentityScenario />;
+    case "nostr-listing":
+      return <NostrListingScenario />;
+    case "nostr-expiration":
+      return <NostrExpirationScenario />;
+    case "nostr-discovery":
+      return <NostrDiscoveryScenario />;
+    case "nostr-verification":
+      return <NostrVerificationScenario />;
+    case "nostr-encrypted-order":
+      return <NostrEncryptedOrderScenario />;
+    case "nostr-direct-payment":
+      return <NostrDirectPaymentScenario />;
+    case "nostr-escrow":
+      return <NostrEscrowScenario />;
+    case "nostr-proof-of-payment":
+      return <NostrProofOfPaymentScenario />;
+    case "nostr-reviews":
+      return <NostrReviewsScenario />;
+    case "nostr-qa":
+      return <NostrQAScenario />;
+    case "nostr-report":
+      return <NostrReportScenario />;
+    case "nostr-zaps":
+      return <NostrZapsScenario />;
+    case "nostr-prisms":
+      return <NostrPrismsScenario />;
+    case "nostr-subscriptions":
+      return <NostrSubscriptionsScenario />;
+    case "nostr-cart":
+      return <NostrCartScenario />;
+    case "nostr-platform-fees":
+      return <NostrPlatformFeesScenario />;
+    case "nostr-zapvertising":
+      return <NostrZapvertisingScenario />;
+    case "nostr-fiat":
+      return <NostrFiatScenario />;
+    case "nostr-l402":
+      return <NostrL402Scenario />;
+    case "nostr-notifications":
+      return <NostrNotificationsScenario />;
+    case "nostr-disputes":
+      return <NostrDisputesScenario />;
     default:
       return null;
   }

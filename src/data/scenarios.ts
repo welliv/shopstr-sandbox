@@ -1,5 +1,6 @@
 import type { Scenario, ScenarioComplexity, ScenarioSection } from "@/types";
 import type { SnippetId } from "@/data/code-snippets";
+import { nostrScenarios } from "./nostr-scenarios";
 
 const unorderedScenarios: Scenario[] = [
   {
@@ -1067,10 +1068,11 @@ const getSectionIndex = (section?: ScenarioSection) => {
   if (!section || section === "scenarios") return 0;
   if (section === "402") return 1;
   if (section === "bitcoin-connect") return 2;
+  if (section === "nostr") return 1;
   return 3;
 };
 
-export const scenarios = unorderedScenarios.sort((a, b) => {
+export const scenarios = [...unorderedScenarios, ...nostrScenarios].sort((a, b) => {
   // First sort by section
   const sectionDiff = getSectionIndex(a.section) - getSectionIndex(b.section);
   if (sectionDiff !== 0) return sectionDiff;

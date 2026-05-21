@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { SnippetCategory } from '@/data/code-snippets';
 import type { PromptCategory } from '@/data/prompts';
 
-type VisualizationTab = 'log' | 'flow' | 'chart' | 'snippets' | 'prompts' | 'production';
+type VisualizationTab = 'log' | 'flow' | 'chart' | 'nostr-events' | 'snippets' | 'prompts' | 'production';
 
 interface UIState {
   visualizationTab: VisualizationTab;
