@@ -1,17 +1,16 @@
 {
   "name": "sandbox",
   "private": true,
-  "homepage": "https://Shopstrhub.store",
   "version": "0.0.0",
   "type": "module",
+  "homepage": "https://Shopstrhub.store",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
     "postinstall": "bash scripts/patch-noble-ciphers.sh",
-    "deploy": "gh-pages -d dist"
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@getalby/bitcoin-connect-react": "^3.12.2",
