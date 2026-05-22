@@ -7,6 +7,8 @@ import {} from "@/components/ui/badge";
 import { NostrIdentityCard } from "@/components/nostr";
 import { useNostrStore, useTransactionStore } from "@/stores";
 import { buildListingTemplate } from "@/lib/nostr";
+import { EventVerifyLink, RelayVerifyBadge } from "@/components/nostr/verification-badges";
+import { verifyEventOnRelay } from "@/lib/verification";
 
 const PRESETS = [
   { label: "1 hour", seconds: 3600 },
@@ -20,6 +22,8 @@ export function NostrExpirationScenario() {
   const [price, setPrice] = useState("12.00");
   const [hoursUntilExpiry, setHoursUntilExpiry] = useState("24");
   const [isPublishing, setIsPublishing] = useState(false);
+  const [publishedEventId, setPublishedEventId] = useState<string | null>(null);
+  const [relayVerified, setRelayVerified] = useState<boolean | undefined>(undefined);
   const [published, setPublished] = useState<{ expiresAt: number } | null>(null);
 
   const { getIdentity, publishNostrEvent } = useNostrStore();
@@ -41,9 +45,18 @@ export function NostrExpirationScenario() {
         price: { amount: price, currency: "USD" },
         expiresAt,
       });
-      await publishNostrEvent("merchant", template);
+      const { event } = await publishNostrEvent("merchant", template);
+      setPublishedEventId(event.id);
       addFlowStep({ fromWallet: "merchant", toWallet: "relay", label: `kind 30402 + expiration`, direction: "right", status: "success" });
       addTransaction({ type: "nostr_listing_published", status: "success", description: `Flash sale listing expires ${expiresDate.toLocaleDateString()}` });
+
+      // Verify on relays after a short delay
+      setTimeout(async () => {
+        const verified = await verifyEventOnRelay(event.id, identity.publicKey, 30402, 5000);
+        setRelayVerified(verified);
+        addTransaction({ type: "nostr_event_published", status: verified ? "success" : "error", description: verified ? "Expiring listing verified on relays ✓" : "Expiring listing not found on relays" });
+      }, 500);
+
       setPublished({ expiresAt });
     } catch (e: unknown) {
       addTransaction({ type: "nostr_listing_published", status: "error", description: String(e) });
@@ -95,6 +108,12 @@ export function NostrExpirationScenario() {
               <div className="flex items-center gap-2 font-medium text-yellow-700">
                 <AlertTriangle className="h-3 w-3" /> Listing published with expiration
               </div>
+              {publishedEventId && (
+                <div className="flex items-center gap-2 mt-2">
+                  <EventVerifyLink eventId={publishedEventId} label="verify event on njump.me" />
+                  <RelayVerifyBadge verified={relayVerified} />
+                </div>
+              )}
               <p className="mt-1 text-muted-foreground">After {expiresDate.toLocaleString()}, compliant relays will stop serving this event. No backend required — the deadline is baked into the event's cryptographic signature.</p>
             </div>
           )}

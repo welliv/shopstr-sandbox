@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Lock, Unlock, Clock, AlertTriangle, Loader2 } from "lucide-react";
+import { BalanceBadge } from "@/components/nostr/verification-badges";
+import { refreshBalance } from "@/lib/verification";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +10,6 @@ import { NostrIdentityCard } from "@/components/nostr";
 import { useWalletStore, useTransactionStore } from "@/stores";
 
 type EscrowState = "idle" | "invoice_created" | "held" | "released" | "expired";
-
 let sharedState: { invoice: string | null; paymentHash: string | null; expiresAt: number | null; status: EscrowState } = {
   invoice: null, paymentHash: null, expiresAt: null, status: "idle"
 };
@@ -58,6 +59,8 @@ function MerchantPanel() {
     setShared({ status: "released" });
     addTransaction({ type: "nostr_event_published", status: "success", description: "Preimage released — escrow settled ✓" });
     addFlowStep({ fromWallet: "merchant", toWallet: "buyer", label: "Preimage released → settled", direction: "right", status: "success" });
+    refreshBalance("alice");
+    refreshBalance("bob");
   };
 
   const state = sharedState;
@@ -98,9 +101,13 @@ function MerchantPanel() {
             </div>
           )}
           {state.status === "released" && (
-            <div className="rounded border border-green-500/20 bg-green-500/5 p-3 text-xs">
+            <div className="rounded border border-green-500/20 bg-green-500/5 p-3 text-xs space-y-2">
               <Badge variant="outline" className="text-green-600 mb-2">✓ Escrow Released</Badge>
               <p>Preimage revealed → Lightning Network settles payment to merchant.</p>
+              <div className="flex gap-2">
+                <BalanceBadge walletId="alice" label="Alice" />
+                <BalanceBadge walletId="bob" label="Bob" />
+              </div>
             </div>
           )}
         </CardContent>
@@ -127,6 +134,7 @@ function BuyerPanel() {
       setShared({ status: "held" });
       addTransaction({ type: "payment_sent", status: "success", description: "Invoice paid — funds held in escrow" });
       addFlowStep({ fromWallet: "buyer", toWallet: "merchant", label: "Funds held ⏳ (not settled)", direction: "right", status: "success" });
+      refreshBalance("bob");
     } catch (e) {
       addTransaction({ type: "payment_sent", status: "error", description: String(e) });
     } finally {
@@ -163,12 +171,19 @@ function BuyerPanel() {
             <div className="rounded border border-yellow-500/20 bg-yellow-500/5 p-3 text-xs">
               <p className="font-medium text-yellow-700">Funds held — awaiting merchant delivery</p>
               <p className="text-muted-foreground mt-1">Merchant must ship and release preimage before the deadline, or you get a full refund.</p>
+              <div className="flex gap-2 mt-2">
+                <BalanceBadge walletId="bob" label="Bob" />
+              </div>
             </div>
           )}
           {(state.status === "released") && (
             <div className="rounded border border-green-500/20 bg-green-500/5 p-3 text-xs">
               <Badge variant="outline" className="text-green-600 mb-2">✓ Delivery Confirmed</Badge>
               <p>Merchant revealed preimage. Payment settled. Transaction complete.</p>
+              <div className="flex gap-2 mt-2">
+                <BalanceBadge walletId="alice" label="Alice" />
+                <BalanceBadge walletId="bob" label="Bob" />
+              </div>
             </div>
           )}
           {state.status === "expired" && (

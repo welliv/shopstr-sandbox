@@ -31,6 +31,7 @@ import {
   NostrPlatformFeesScenario, NostrZapvertisingScenario, NostrFiatScenario,
   NostrL402Scenario, NostrNotificationsScenario, NostrDisputesScenario,
 } from "./scenarios/nostr";
+import { FoundationScenario } from "./scenarios/nostr-foundation";
 
 export function ScenarioPanel() {
   const { currentScenario } = useScenarioStore();
@@ -79,6 +80,8 @@ export function ScenarioPanel() {
     case "mpp-fetch":
       return <MPPFetchScenario />;
     // ── Nostr Commerce ────────────────────────────────────────────────────────
+    case "foundation":
+      return <FoundationScenario />;
     case "nostr-identity":
       return <NostrIdentityScenario />;
     case "nostr-listing":

@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NostrIdentityCard, TrustScoreWidget } from "@/components/nostr";
 import { useNostrStore, useTransactionStore } from "@/stores";
 import { verifyNip05, type TrustSignals } from "@/lib/nostr";
+import { EventVerifyLink } from "@/components/nostr/verification-badges";
+import { verifyEventOnRelay } from "@/lib/verification";
 
 export function NostrVerificationScenario() {
   const [signals, setSignals] = useState<TrustSignals>({
@@ -36,6 +38,8 @@ function VerificationPanel({ signals, setSignals }: {
   const [githubInput, setGithubInput] = useState("alice-candles");
   const [isVerifyingNip05, setIsVerifyingNip05] = useState(false);
   const [nip05Result, setNip05Result] = useState<string | null>(null);
+  const [publishedEventId, setPublishedEventId] = useState<string | null>(null);
+  const [assertionEventId, setAssertionEventId] = useState<string | null>(null);
 
   const { getIdentity, publishNostrEvent } = useNostrStore();
   const { addTransaction } = useTransactionStore();
@@ -54,27 +58,33 @@ function VerificationPanel({ signals, setSignals }: {
 
   const handleAddGithubLink = async () => {
     if (!identity) return;
-    await publishNostrEvent("merchant", {
+    const result = await publishNostrEvent("merchant", {
       kind: 0,
       created_at: Math.floor(Date.now() / 1000),
       tags: [["i", `github:${githubInput}`, `https://gist.github.com/${githubInput}/nostr`]],
       content: JSON.stringify({ name: "Alice", nip05: nip05Input }),
     });
+    const eventId = result.event.id;
+    const verified = await verifyEventOnRelay(eventId, identity.publicKey, 0, 4000);
+    setPublishedEventId(eventId);
+    addTransaction({ type: "nostr_trust_computed", status: verified ? "success" : "error", description: `GitHub link published — event ${verified ? "confirmed" : "pending"} on relays` });
     setSignals({ ...signals, hasExternalLinks: true });
-    addTransaction({ type: "nostr_trust_computed", status: "success", description: `Added GitHub link: @${githubInput}` });
   };
 
   const handleSimulateAttestation = async () => {
     if (!identity) return;
     // Simulate a NIP-85 assertion from a trusted arbitrator
-    await publishNostrEvent("merchant", {
+    const result = await publishNostrEvent("merchant", {
       kind: 30382,
       created_at: Math.floor(Date.now() / 1000),
       tags: [["d", identity.publicKey], ["k", "30402"], ["n", "true"]],
       content: "Merchant verified by Shopstr escrow service",
     });
+    const eventId = result.event.id;
+    const verified = await verifyEventOnRelay(eventId, identity.publicKey, 30382, 4000);
+    setAssertionEventId(eventId);
+    addTransaction({ type: "nostr_trust_computed", status: verified ? "success" : "error", description: `NIP-85 assertion published — event ${verified ? "confirmed" : "pending"} on relays` });
     setSignals({ ...signals, hasThirdPartyAssertions: true });
-    addTransaction({ type: "nostr_trust_computed", status: "success", description: "NIP-85 assertion published by trusted attestor" });
   };
 
   const handleSimulateReviews = () => {
@@ -125,6 +135,7 @@ function VerificationPanel({ signals, setSignals }: {
             <Button size="sm" onClick={handleAddGithubLink} disabled={!identity}>Add</Button>
           </div>
           {signals.hasExternalLinks && <p className="text-xs text-green-600">✅ GitHub link added to kind 0 profile</p>}
+          {publishedEventId && <EventVerifyLink eventId={publishedEventId} label="verify event on njump.me" />}
         </CardContent>
       </Card>
 
@@ -139,6 +150,7 @@ function VerificationPanel({ signals, setSignals }: {
           <Button size="sm" variant="outline" className="w-full text-xs" onClick={handleSimulateAttestation} disabled={!identity}>
             NIP-85 Third-Party Assertion (weight: 2)
           </Button>
+          {assertionEventId && <EventVerifyLink eventId={assertionEventId} label="verify assertion on njump.me" />}
           <Button size="sm" variant="outline" className="w-full text-xs" onClick={handleSimulateReviews}>
             Verified Reviews found (weight: 3)
           </Button>

@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NostrIdentityCard } from "@/components/nostr";
 import { useNostrStore, useTransactionStore } from "@/stores";
+import { EventVerifyLink } from "@/components/nostr/verification-badges";
+import { verifyEventOnRelay } from "@/lib/verification";
 
 
 interface QAEntry { type: "question" | "answer"; content: string; author: string; eventId: string; }
@@ -46,6 +48,11 @@ function BuyerPanel() {
       addTransaction({ type: "nostr_event_published", status: "success", description: `kind 1111 question published` });
       addFlowStep({ fromWallet: "buyer", toWallet: "relay", label: "kind 1111 question → relays", direction: "right", status: "success" });
       setQuestion("");
+      setTimeout(() => {
+        verifyEventOnRelay(result.event.id, buyerIdentity?.publicKey ?? "", 1111, 4000).then(verified => {
+          addTransaction({ type: "nostr_event_published", status: verified ? "success" : "error", description: `Question relay verification: ${verified ? "confirmed" : "pending"}` });
+        });
+      }, 500);
     } catch (e) {
       addTransaction({ type: "nostr_event_published", status: "error", description: String(e) });
     } finally {
@@ -72,6 +79,7 @@ function BuyerPanel() {
           <div key={i} className={`rounded border p-3 text-sm ${entry.type === "question" ? "bg-muted/30" : "bg-green-500/5 border-green-500/20 ml-4"}`}>
             <p className="text-xs text-muted-foreground mb-1">{entry.type === "question" ? "Q:" : "A:"} <span className="font-mono">{entry.author}</span></p>
             <p>{entry.content}</p>
+            {entry.eventId && <EventVerifyLink eventId={entry.eventId} label="verify on njump.me" />}
           </div>
         ))}
       </div>
@@ -101,6 +109,11 @@ function MerchantPanel() {
       addTransaction({ type: "nostr_event_published", status: "success", description: "kind 1111 answer published — permanent on relays" });
       addFlowStep({ fromWallet: "merchant", toWallet: "relay", label: "kind 1111 answer → relays", direction: "right", status: "success" });
       setAnswer("");
+      setTimeout(() => {
+        verifyEventOnRelay(result.event.id, getIdentity("merchant")?.publicKey ?? "", 1111, 4000).then(verified => {
+          addTransaction({ type: "nostr_event_published", status: verified ? "success" : "error", description: `Answer relay verification: ${verified ? "confirmed" : "pending"}` });
+        });
+      }, 500);
     } catch (e) {
       addTransaction({ type: "nostr_event_published", status: "error", description: String(e) });
     } finally {

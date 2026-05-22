@@ -8,6 +8,8 @@ import {} from "@/components/ui/badge";
 import { NostrIdentityCard } from "@/components/nostr";
 import { useNostrStore, useTransactionStore } from "@/stores";
 import { buildListingTemplate } from "@/lib/nostr";
+import { EventVerifyLink, RelayVerifyBadge } from "@/components/nostr/verification-badges";
+import { verifyEventOnRelay } from "@/lib/verification";
 
 export function NostrListingScenario() {
   return (
@@ -30,6 +32,8 @@ function ListingPanel() {
   const [shareableLink, setShareableLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [_publishedEvent, _setPublishedEvent] = useState<Record<string, unknown> | null>(null);
+  const [publishedEventId, setPublishedEventId] = useState<string | null>(null);
+  const [relayVerified, setRelayVerified] = useState<boolean | undefined>(undefined);
 
   const { getIdentity, publishNostrEvent } = useNostrStore();
   const { addTransaction, addFlowStep } = useTransactionStore();
@@ -50,9 +54,17 @@ function ListingPanel() {
     });
 
     try {
-      await publishNostrEvent("merchant", template);
+      const { event } = await publishNostrEvent("merchant", template);
+      setPublishedEventId(event.id);
       addFlowStep({ fromWallet: "merchant", toWallet: "relay", label: "kind 30402 → relays", direction: "right", status: "success" });
       addTransaction({ type: "nostr_listing_published", status: "success", description: `Listed: ${title} — ${price} ${currency}` });
+
+      // Verify on relays
+      setTimeout(async () => {
+        const verified = await verifyEventOnRelay(event.id, identity.publicKey, 30402, 5000);
+        setRelayVerified(verified);
+        addTransaction({ type: "nostr_listing_published", status: verified ? "success" : "error", description: verified ? "Listing verified on relays ✓" : "Listing not found on relays" });
+      }, 500);
 
       // Build shareable naddr link
       const { naddrEncode } = await import("nostr-tools/nip19");
@@ -123,6 +135,12 @@ function ListingPanel() {
                 <ExternalLink className="h-3 w-3" />
               </a>
             </div>
+            {publishedEventId && (
+              <div className="flex items-center gap-2 text-xs">
+                <EventVerifyLink eventId={publishedEventId} />
+                <RelayVerifyBadge verified={relayVerified} />
+              </div>
+            )}
             <p className="text-xs text-muted-foreground">Opens in any Nostr client (njump.me). Only Alice (holder of the private key) can update or delete this listing.</p>
           </div>
         )}

@@ -3,9 +3,7 @@ import {
   CodeIcon,
   DropletsIcon,
   ExternalLink,
-  HelpCircleIcon,
-  LightbulbIcon,
-  ShoppingBagIcon,
+  MessageCircle,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import {
@@ -27,16 +25,16 @@ import { BitcoinConnectIcon } from "@/icons/BitcoinConnectIcon";
 const externalLinks = [
   { title: "Nostr Commerce Skill", url: "https://github.com/welliv/nostr-commerce-skill", icon: <BotIcon className="size-4" /> },
   { title: "NWC Faucet", url: "https://faucet.nwc.dev", icon: <DropletsIcon className="size-4" /> },
-  { title: "Sandbox Source", url: "https://github.com/shopstr-eng/shopstr-sandbox", icon: <CodeIcon className="size-4" /> },
-  { title: "Feedback", url: "https://shopstr.store", icon: <LightbulbIcon className="size-4" /> },
-  { title: "Help", url: "https://github.com/welliv/nostr-commerce-skill", icon: <HelpCircleIcon className="size-4" /> },
+  { title: "Sandbox Source", url: "https://github.com/welliv/shopstr-sandbox", icon: <CodeIcon className="size-4" /> },
+  { title: "Feedback", url: "https://primal.net/p/nprofile1qqsd9dqks3n588cradlquv97jsfdtg5aq592ca7uvr0rmjulghu3kpcrv5ldx", icon: <MessageCircle className="size-4" /> },
 ];
 
 const NOSTR_CHAPTERS = [
-  { label: "Foundation", ids: ["nostr-identity","nostr-listing","nostr-expiration","nostr-discovery","nostr-verification"] },
-  { label: "Commerce", ids: ["nostr-encrypted-order","nostr-direct-payment","nostr-escrow","nostr-proof-of-payment","nostr-reviews","nostr-qa","nostr-report"] },
-  { label: "Trust", ids: ["nostr-zaps","nostr-prisms","nostr-subscriptions","nostr-cart","nostr-platform-fees"] },
-  { label: "Advanced", ids: ["nostr-zapvertising","nostr-fiat","nostr-l402","nostr-notifications","nostr-disputes"] },
+  { label: "🏗️ Foundation", ids: ["foundation"] },
+  { label: "🛒 Commerce", ids: ["nostr-identity","nostr-listing","nostr-expiration","nostr-discovery","nostr-verification","nostr-encrypted-order","nostr-direct-payment","nostr-proof-of-payment","nostr-reviews"] },
+  { label: "🔒 Trust & Disputes", ids: ["nostr-escrow","nostr-qa","nostr-report","nostr-disputes"] },
+  { label: "💰 Monetisation", ids: ["nostr-zaps","nostr-prisms","nostr-subscriptions","nostr-cart","nostr-platform-fees","nostr-zapvertising","nostr-fiat","nostr-l402"] },
+  { label: "⚡ Infrastructure", ids: ["nostr-notifications"] },
 ];
 
 export function AppSidebar() {
@@ -54,7 +52,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="">
         <div className="flex items-center gap-2">
-          <ShoppingBagIcon className="size-6 text-purple-500" />
+          <img src="/shopstr-logo.jpg" className="size-8 rounded-lg" alt="Shopstr" />
           <div>
             <h1 className="font-semibold">Shopstr Sandbox</h1>
             <p className="text-xs text-muted-foreground">Explore Nostr Commerce Scenarios</p>

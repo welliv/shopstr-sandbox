@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { NostrIdentityCard } from "@/components/nostr";
+import { EventVerifyLink, RelayVerifyBadge } from "@/components/nostr/verification-badges";
+import { verifyEventOnRelay } from "@/lib/verification";
 import { useNostrStore, useTransactionStore } from "@/stores";
 import { giftWrap, unwrapGiftWrap } from "@/lib/nostr";
 
@@ -28,6 +30,8 @@ function MerchantPanel() {
   const [body, setBody] = useState("Your lavender candle order has been confirmed and will ship within 48 hours. Thank you!");
   const [isSending, setIsSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [lastEventId, setLastEventId] = useState<string | null>(null);
+  const [eventVerified, setEventVerified] = useState<boolean | undefined>(undefined);
 
   const { getPrivateKey, getIdentity } = useNostrStore();
   const { addTransaction, addFlowStep } = useTransactionStore();
@@ -43,6 +47,12 @@ function MerchantPanel() {
     notify();
     addTransaction({ type: "nostr_event_published", status: "success", description: `Notification sent via NIP-59 gift wrap — encrypted to buyer only` });
     addFlowStep({ fromWallet: "merchant", toWallet: "buyer", label: "kind 1059 notification", direction: "right", status: "success" });
+    // Verify the gift wrap event on relay
+    const eventId = pendingWrap.id;
+    setLastEventId(eventId);
+    verifyEventOnRelay(eventId, pendingWrap.pubkey, 1059).then(verified => {
+      setEventVerified(verified);
+    });
     setIsSending(false);
     setSent(true);
   };
@@ -68,10 +78,16 @@ function MerchantPanel() {
             {isSending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Sending...</> : "Send NIP-59 Notification"}
           </Button>
           {sent && (
-            <div className="rounded border border-green-500/20 bg-green-500/5 p-2 text-xs space-y-1">
-              <Badge variant="outline" className="text-green-600">✓ Sent</Badge>
+            <div className="rounded border border-green-500/20 bg-green-500/5 p-2 text-xs space-y-2">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-green-600">✓ Sent</Badge>
+                <RelayVerifyBadge verified={eventVerified} />
+              </div>
               <p>Relay sees: kind 1059 from ephemeral key, to buyer pubkey</p>
               <p className="text-muted-foreground">No email, no webhook, no plain text on the wire</p>
+              {lastEventId && (
+                <EventVerifyLink eventId={lastEventId} label="verify event on njump" />
+              )}
             </div>
           )}
         </CardContent>

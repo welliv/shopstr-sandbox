@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { getFiatValue } from "@getalby/lightning-tools/fiat";
+import { BalanceBadge } from "@/components/nostr/verification-badges";
 
 const CURRENCIES = ["USD", "EUR", "GBP", "JPY"] as const;
 type Currency = typeof CURRENCIES[number];
@@ -22,24 +22,30 @@ export function NostrFiatScenario() {
     setIsConverting(true);
     setError(null);
     try {
-      // getFiatValue returns the fiat value of 1 sat in the given currency
-      const oneSatInUsd = await getFiatValue({ satoshi: 1, currency: "USD" });
-      // Approximate other currencies with fixed ratios (production would use real rates)
-      const rates: Record<Currency, number> = {
-        USD: 1, EUR: 0.92, GBP: 0.79, JPY: 155,
-      };
-      const btcUsdPrice = 1 / oneSatInUsd / 100_000_000;
-      const fiatInUsd = parseFloat(fiatAmount) / rates[currency];
-      const sats = Math.round((fiatInUsd / btcUsdPrice) * 100_000_000);
-      setResult({ sats, fiatAmount: parseFloat(fiatAmount), currency, rate: btcUsdPrice });
+      // Fetch live BTC prices in all supported currencies from CoinGecko
+      const res = await fetch(
+        "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd%2Ceur%2Cgbp%2Cjpy"
+      );
+      if (!res.ok) throw new Error("CoinGecko returned " + res.status);
+      const data = await res.json();
+      const btcPriceMap: Record<string, number> = data.bitcoin;
+
+      const cgKey = currency.toLowerCase();
+      const btcPrice = btcPriceMap[cgKey];
+      if (!btcPrice) throw new Error("No price for " + currency);
+
+      // sats = fiatAmount × (100M sats / BTC price in currency)
+      const sats = Math.round(parseFloat(fiatAmount) * (100_000_000 / btcPrice));
+      setResult({ sats, fiatAmount: parseFloat(fiatAmount), currency, rate: btcPrice });
     } catch {
-      // Fallback: simulate with fixed rate
-      const fallbackSatPerUsd = 3500;
-      const rates: Record<Currency, number> = { USD: 1, EUR: 0.92, GBP: 0.79, JPY: 155 };
-      const usdAmount = parseFloat(fiatAmount) / rates[currency];
-      const sats = Math.round(usdAmount * fallbackSatPerUsd);
-      setResult({ sats, fiatAmount: parseFloat(fiatAmount), currency, rate: 100_000_000 / (fallbackSatPerUsd * 100_000_000) });
-      setError("Using fallback rate (CoinGecko unavailable in this environment)");
+      // Fallback: use hardcoded BTC prices
+      const fallbackBtcPrices: Record<Currency, number> = {
+        USD: 77000, EUR: 66000, GBP: 57000, JPY: 12_300_000,
+      };
+      const btcPrice = fallbackBtcPrices[currency];
+      const sats = Math.round(parseFloat(fiatAmount) * (100_000_000 / btcPrice));
+      setResult({ sats, fiatAmount: parseFloat(fiatAmount), currency, rate: btcPrice });
+      setError("CoinGecko unavailable — using fallback rate");
     } finally {
       setIsConverting(false);
     }
@@ -52,6 +58,9 @@ export function NostrFiatScenario() {
           <CardTitle className="flex items-center gap-2 text-sm"><DollarSign className="h-4 w-4" /> Fiat-Priced Listing (NIP-99)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <BalanceBadge walletId="alice" label="Alice Wallet" />
+          </div>
           <div className="rounded border p-3 space-y-2">
             <p className="font-medium text-sm">🕯️ Lavender Soy Candle (8oz)</p>
             <p className="text-xs text-muted-foreground">Hand-poured, 40–50 hour burn. Ships in 48h.</p>

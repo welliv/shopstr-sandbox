@@ -7,6 +7,8 @@ import {} from "@/components/ui/badge";
 import { NostrIdentityCard } from "@/components/nostr";
 import { useNostrStore, useTransactionStore } from "@/stores";
 import { verifyNip05 } from "@/lib/nostr";
+import { EventVerifyLink } from "@/components/nostr/verification-badges";
+import { verifyEventOnRelay } from "@/lib/verification";
 
 export function NostrIdentityScenario() {
   return (
@@ -38,6 +40,8 @@ function ProfilePanel() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [nip05Valid, setNip05Valid] = useState<boolean | null>(null);
   const [published, setPublished] = useState(false);
+  const [publishedEventId, setPublishedEventId] = useState<string | null>(null);
+  const [relayVerified, setRelayVerified] = useState<boolean | undefined>(undefined);
   const [copied, setCopied] = useState(false);
 
   const { getPrivateKey, getIdentity, publishNostrEvent } = useNostrStore();
@@ -51,14 +55,22 @@ function ProfilePanel() {
 
 
     try {
-      await publishNostrEvent("merchant", {
+      const { event } = await publishNostrEvent("merchant", {
         kind: 0,
         created_at: Math.floor(Date.now() / 1000),
         tags: [],
         content: JSON.stringify({ name, about, lud16, nip05: nip05 || undefined }),
       });
+      setPublishedEventId(event.id);
       addFlowStep({ fromWallet: "merchant", toWallet: "relay", label: "kind 0 → 3 relays", direction: "right", status: "success" });
       addTransaction({ type: "nostr_event_published", status: "success", description: `Profile published: ${name}` });
+
+      setTimeout(async () => {
+        const verified = await verifyEventOnRelay(event.id, identity!.publicKey, 0, 5000);
+        setRelayVerified(verified);
+        addTransaction({ type: "nostr_event_published", status: verified ? "success" : "error", description: verified ? "Profile verified on relays ✓" : "Profile not found on relays" });
+      }, 500);
+
       setPublished(true);
     } catch (e: unknown) {
       addTransaction({ type: "nostr_event_published", status: "error", description: String(e) });
@@ -127,6 +139,16 @@ function ProfilePanel() {
             <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={handleCopyNpub}>
               {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
             </Button>
+          </div>
+        )}
+        {publishedEventId && (
+          <div className="flex items-center gap-2 mt-2 text-xs">
+            <EventVerifyLink eventId={publishedEventId} />
+            {relayVerified !== undefined && (
+              <span className={relayVerified ? "text-green-600" : "text-yellow-600"}>
+                {relayVerified ? "✓ confirmed" : "pending..."}
+              </span>
+            )}
           </div>
         )}
       </CardContent>

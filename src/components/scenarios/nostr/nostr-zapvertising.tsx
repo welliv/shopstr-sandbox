@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { BalanceBadge } from "@/components/nostr/verification-badges";
+import { refreshBalance } from "@/lib/verification";
 import { useWalletStore, useTransactionStore } from "@/stores";
 import { LightningAddress } from "@getalby/lightning-tools";
 
@@ -51,6 +53,8 @@ export function NostrZapvertisingScenario() {
         newResults.push({ name: viewer.name, status: "zapped", amount: amountSats });
         addTransaction({ type: "nostr_zap_sent", status: "success", description: `${viewer.name}: ${amountSats} sats paid to see ad` });
         addFlowStep({ fromWallet: "advertiser", toWallet: viewer.name.toLowerCase().replace(" ", ""), label: `${amountSats} sats ad payment`, direction: "right", status: "success" });
+        // Refresh advertiser balance after each payment
+        refreshBalance('alice');
       } catch (e) {
         newResults.push({ name: viewer.name, status: "error" });
         addTransaction({ type: "nostr_zap_sent", status: "error", description: `${viewer.name}: ${String(e)}` });
@@ -58,6 +62,8 @@ export function NostrZapvertisingScenario() {
       setResults([...newResults]);
     }
     setTotalSpent(spent);
+    // Final balance refresh after all payments
+    refreshBalance('alice');
     setIsRunning(false);
   };
 
@@ -70,6 +76,9 @@ export function NostrZapvertisingScenario() {
           <CardTitle className="flex items-center gap-2 text-sm"><Megaphone className="h-4 w-4" /> Campaign Setup</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <BalanceBadge walletId="alice" label="Alice (Advertiser)" />
+          </div>
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground">Audience search query (NIP-50)</label>
             <Input value={query} onChange={e => setQuery(e.target.value)} placeholder="handmade candles" />

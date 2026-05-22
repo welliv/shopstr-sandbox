@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { NostrIdentityCard } from "@/components/nostr";
 import { useNostrStore, useTransactionStore } from "@/stores";
 import { publishReport, type ReportReason } from "@/lib/nostr";
+import { verifyEventOnRelay } from "@/lib/verification";
 
 const REASONS: { value: ReportReason; label: string }[] = [
   { value: "scam", label: "Scam" },
@@ -26,7 +27,7 @@ export function NostrReportScenario() {
   );
 }
 
-interface ReportEntry { reason: ReportReason; comment: string; reportedPubkey: string; reporterNpub: string; }
+interface ReportEntry { reason: ReportReason; comment: string; reportedPubkey: string; reporterNpub: string; eventId: string; }
 let reports: ReportEntry[] = [];
 const listeners = new Set<() => void>();
 function notify() { listeners.forEach(l => l()); }
@@ -49,10 +50,12 @@ function ReporterPanel() {
     if (!privkey) return;
     setIsReporting(true);
     try {
-      await publishReport(targetPubkey, reason, comment, privkey);
-      reports = [...reports, { reason, comment, reportedPubkey: targetPubkey, reporterNpub: reporterIdentity?.npub ?? "" }];
+      const result = await publishReport(targetPubkey, reason, comment, privkey);
+      const eventId = result.event.id;
+      const verified = await verifyEventOnRelay(eventId, targetPubkey, 1984, 4000);
+      reports = [...reports, { reason, comment, reportedPubkey: targetPubkey, reporterNpub: reporterIdentity?.npub ?? "", eventId }];
       notify();
-      addTransaction({ type: "nostr_report_published", status: "success", description: `kind 1984 report published — reason: ${reason}` });
+      addTransaction({ type: "nostr_report_published", status: "success", description: `kind 1984 report published — reason: ${reason} — relay ${verified ? "confirmed" : "verification pending"}` });
       addFlowStep({ fromWallet: "reporter", toWallet: "relay", label: "kind 1984 → relays (permanent)", direction: "right", status: "success" });
     } catch (e) {
       addTransaction({ type: "nostr_report_published", status: "error", description: String(e) });

@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { BalanceBadge } from "@/components/nostr/verification-badges";
+import { refreshBalance } from "@/lib/verification";
 import { useWalletStore, useTransactionStore } from "@/stores";
 import { LightningAddress } from "@getalby/lightning-tools";
 
@@ -40,6 +42,9 @@ export function NostrPrismsScenario() {
         newResults.push({ address, sats, status: "success" });
         addTransaction({ type: "payment_sent", status: "success", description: `${label}: ${sats} sats → ${address}` });
         addFlowStep({ fromWallet: "charlie", toWallet: label, label: `${sats} sats (${label === "seller" ? sellerPct : platformPct}%)`, direction: "right", status: "success" });
+        // Refresh balances after each split leg payment
+        refreshBalance('charlie');
+        refreshBalance('alice');
       } catch (e) {
         newResults.push({ address, sats, status: "error" });
         addTransaction({ type: "payment_sent", status: "error", description: `${label} payment failed: ${String(e)}` });
@@ -56,6 +61,10 @@ export function NostrPrismsScenario() {
           <CardTitle className="flex items-center gap-2 text-sm"><GitBranch className="h-4 w-4" /> Configure Prism Split</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <BalanceBadge walletId="charlie" label="Charlie (Payer)" />
+            <BalanceBadge walletId="alice" label="Alice (Seller)" />
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">Seller address</label>

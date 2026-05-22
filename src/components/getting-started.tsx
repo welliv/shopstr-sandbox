@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { scenarios } from "@/data/scenarios";
 import { WALLET_PERSONAS } from "@/types/wallet";
 
 const slides = [
@@ -45,38 +44,45 @@ const slides = [
     ),
   },
   {
-    title: "The Native Currency of the AI Age",
+    title: "The New Economy of the AI Age",
     content: (
       <div className="flex flex-col items-center gap-6">
-        <span className="text-7xl">⚡</span>
         <p className="text-center text-lg text-muted-foreground">
-          Bitcoin is the permissionless payment layer for the internet.
+          Bitcoin is the open money of the internet.
         </p>
         <p className="text-center text-lg text-muted-foreground">
-          Lightning makes it instant, cheap, and perfect for apps and autonomous
-          agents.
+          Lightning makes payments instant and almost free for machines and apps.
         </p>
         <p className="text-center text-lg text-muted-foreground">
-          NWC connects apps and autonomous agents to lightning wallets.
+          Nostr gives every person and AI agent their own identity and reputation
+          that no company can take away.
+        </p>
+        <p className="text-center text-lg text-muted-foreground">
+          Easy wallet connections let agents use money. Per-use payments let them
+          pay only for what they need.
+        </p>
+        <p className="text-center text-lg text-muted-foreground">
+          Together they create a complete system where people and AI agents can
+          trade, build trust, and work together without any platform controlling
+          everything.
+        </p>
+        <p className="text-center text-lg font-medium text-foreground">
+          This is the foundation of the AI economy.
         </p>
       </div>
     ),
   },
   {
-    title: "Explore Real-World Scenarios",
+    title: "See It In Action",
     content: (
       <div className="flex flex-col items-center gap-6">
-        <span className="text-7xl">🚀</span>
         <p className="text-center text-lg text-muted-foreground">
-          Use the interactive sandbox to test NWC connections and explore
-          real-world Lightning use cases with specific code examples for your
-          app.
+          Try live examples right in your browser. See how payments and
+          connections work in real situations — no setup needed.
         </p>
-
         <p className="text-center text-lg text-muted-foreground">
-          Test wallets allow you to instantly get started without any setup.
-          Jumpstart your development with pre-built scenarios designed for
-          real-world Bitcoin use cases.
+          We've created ready-to-use examples based on actual use cases, so you
+          can understand everything clearly and get started fast.
         </p>
       </div>
     ),
@@ -103,7 +109,7 @@ export function GettingStarted() {
         <div className="flex flex-col items-center gap-6">
           {isLastSlide ? (
             <Button asChild>
-              <Link to={`/${scenarios[0].id}`}>
+              <Link to="/foundation">
                 Try the first scenario &rarr;
               </Link>
             </Button>

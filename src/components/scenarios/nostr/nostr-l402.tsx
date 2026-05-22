@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { BalanceBadge, PreimageProof } from "@/components/nostr/verification-badges";
+import { refreshBalance } from "@/lib/verification";
 import { useWalletStore, useTransactionStore } from "@/stores";
 
 // Simulate an L402 API server for demo purposes
@@ -21,6 +23,7 @@ export function NostrL402Scenario() {
   const [state, setState] = useState<"idle" | "challenged" | "paying" | "paid">("idle");
   const [_invoice, setInvoice] = useState<string | null>(null);
   const [data, setData] = useState<typeof MOCK_API_DATA | null>(null);
+  const [paymentPreimage, setPaymentPreimage] = useState<string | null>(null);
 
   const { getNWCClient } = useWalletStore();
   const { addTransaction, addFlowStep } = useTransactionStore();
@@ -43,8 +46,12 @@ export function NostrL402Scenario() {
       // In real L402: pay invoice, get preimage, retry with Authorization header
       // Here we simulate success after wallet confirms
       await new Promise(r => setTimeout(r, 1500)); // simulate payment round-trip
+      const mockPreimage = "abc123def456abc123def456abc123def456abc123def456abc123def4567890";
+      setPaymentPreimage(mockPreimage);
       setState("paid");
       setData(MOCK_API_DATA);
+      // Refresh balance after payment
+      refreshBalance('bob');
       addTransaction({ type: "payment_sent", status: "success", description: `L402 paid: ${pricePerCall} sat → preimage used as credential` });
       addFlowStep({ fromWallet: "buyer", toWallet: "api", label: "GET /catalog + Authorization: L402 macaroon:preimage", direction: "right", status: "success" });
       addFlowStep({ fromWallet: "api", toWallet: "buyer", label: "← 200 OK + catalog data", direction: "left", status: "success" });
@@ -61,6 +68,9 @@ export function NostrL402Scenario() {
           <CardTitle className="flex items-center gap-2 text-sm"><Code className="h-4 w-4" /> API Client (Bob)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <BalanceBadge walletId="bob" label="Bob Wallet" />
+          </div>
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground">Paid API endpoint</label>
             <Input value={apiUrl} onChange={e => setApiUrl(e.target.value)} className="font-mono text-xs" />
@@ -98,6 +108,11 @@ export function NostrL402Scenario() {
             <div className="rounded border border-green-500/20 bg-green-500/5 p-2 text-xs">
               <Unlock className="h-3 w-3 inline mr-1 text-green-600" />
               <Badge variant="outline" className="text-green-600">200 OK — Access granted</Badge>
+              {paymentPreimage && (
+                <div className="mt-2">
+                  <PreimageProof preimage={paymentPreimage} paymentHash="" />
+                </div>
+              )}
             </div>
           )}
         </CardContent>

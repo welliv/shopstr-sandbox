@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { ShoppingCart, Trash2, Loader2, Plus } from "lucide-react";
+import { BalanceBadge } from "@/components/nostr/verification-badges";
+import { refreshBalance } from "@/lib/verification";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,6 +60,7 @@ export function NostrCartScenario() {
     }
     setResults(newResults);
     setPayStatus("done");
+    refreshBalance("charlie");
   };
 
   return (
@@ -132,6 +135,9 @@ export function NostrCartScenario() {
                   <p className="text-muted-foreground font-mono">{r.item.merchantAddress}</p>
                 </div>
               ))}
+              <div className="flex gap-2">
+                <BalanceBadge walletId="charlie" label="Charlie" />
+              </div>
               <Button className="w-full" variant="outline" onClick={() => { setResults([]); setPayStatus("idle"); setItems(DEFAULT_ITEMS); }}>
                 Reset Cart
               </Button>

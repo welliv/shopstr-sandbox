@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { NostrIdentityCard } from "@/components/nostr";
+import { BalanceBadge, PreimageProof, EventVerifyLink, RelayVerifyBadge } from "@/components/nostr/verification-badges";
+import { refreshBalance, verifyEventOnRelay } from "@/lib/verification";
 import { useNostrStore, useWalletStore, useTransactionStore } from "@/stores";
 import { buildZapRequest } from "@/lib/nostr";
 import { LightningAddress } from "@getalby/lightning-tools";
@@ -28,6 +30,8 @@ function ZapPanel() {
   const [comment, setComment] = useState("Great candle! 5 stars ⚡");
   const [lnAddress, setLnAddress] = useState("alice@getalby.com");
   const [isZapping, setIsZapping] = useState(false);
+  const [zapResult, setZapResult] = useState<{preimage: string; eventId: string} | null>(null);
+  const [eventVerified, setEventVerified] = useState<boolean | undefined>(undefined);
 
   const { getPrivateKey, getIdentity, publishNostrEvent } = useNostrStore();
   const { getNWCClient } = useWalletStore();
@@ -52,13 +56,23 @@ function ZapPanel() {
       // Pay via NWC
       const payResult = await client.payInvoice({ invoice: invoice.paymentRequest });
 
+      // Refresh balances after payment
+      refreshBalance('bob');
+      refreshBalance('alice');
+      const preimage = payResult.preimage ?? "";
+
       // Publish kind 9735 receipt (simulated — real receipt comes from LNURL server)
-      await publishNostrEvent("buyer", {
+      const { event } = await publishNostrEvent("buyer", {
         kind: 9735,
         created_at: Math.floor(Date.now() / 1000),
-        tags: [["p", recipientPubkey], ["preimage", payResult.preimage ?? ""], ["description", JSON.stringify(zapReq)]],
+        tags: [["p", recipientPubkey], ["preimage", preimage], ["description", JSON.stringify(zapReq)]],
         content: "",
       });
+
+      // Verify event on relay
+      setZapResult({ preimage, eventId: event.id });
+      const verified = await verifyEventOnRelay(event.id, senderIdentity.publicKey, 9735);
+      setEventVerified(verified);
 
       zaps = [{ amount: parseInt(amount), comment, senderNpub: senderIdentity.npub }, ...zaps];
       notify();
@@ -74,6 +88,10 @@ function ZapPanel() {
   return (
     <div className="space-y-4">
       <NostrIdentityCard role="buyer" label="Bob (Buyer)" emoji="👨‍🦱" />
+      <div className="flex gap-2">
+        <BalanceBadge walletId="bob" label="Bob" />
+        <BalanceBadge walletId="alice" label="Alice" />
+      </div>
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-sm"><Zap className="h-4 w-4 text-yellow-500" /> Send Zap (NIP-57)</CardTitle>
@@ -101,6 +119,18 @@ function ZapPanel() {
           <Button className="w-full" onClick={handleZap} disabled={!senderIdentity || isZapping}>
             {isZapping ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Zapping...</> : <><Zap className="mr-2 h-4 w-4" />Zap {amount} sats</>}
           </Button>
+          {zapResult && (
+            <div className="rounded border border-green-500/20 bg-green-500/5 p-2 text-xs space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="font-medium">⚡ Zap Proof</span>
+                <RelayVerifyBadge verified={eventVerified} />
+              </div>
+              <PreimageProof preimage={zapResult.preimage} paymentHash="" />
+              {zapResult.eventId && (
+                <EventVerifyLink eventId={zapResult.eventId} label="verify kind 9735 on njump" />
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

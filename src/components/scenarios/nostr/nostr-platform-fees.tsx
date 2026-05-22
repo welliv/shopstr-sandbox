@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { BalanceBadge } from "@/components/nostr/verification-badges";
+import { refreshBalances } from "@/lib/verification";
 import { useWalletStore, useTransactionStore } from "@/stores";
 import { LightningAddress } from "@getalby/lightning-tools";
 
@@ -44,6 +46,8 @@ export function NostrPlatformFeesScenario() {
       addFlowStep({ fromWallet: "buyer", toWallet: "platform", label: `${feeSats} sats (${feePercent}% fee)`, direction: "right", status: "success" });
 
       setPaid(true);
+      // Refresh balances after both payments
+      refreshBalances(['bob', 'alice']);
     } catch (e) {
       addTransaction({ type: "payment_sent", status: "error", description: String(e) });
     } finally {
@@ -58,6 +62,10 @@ export function NostrPlatformFeesScenario() {
           <CardTitle className="flex items-center gap-2 text-sm"><DollarSign className="h-4 w-4" /> Configure Fees</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <BalanceBadge walletId="bob" label="Bob (Buyer)" />
+            <BalanceBadge walletId="alice" label="Alice (Merchant)" />
+          </div>
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground">Merchant address</label>
             <Input value={merchantAddress} onChange={e => setMerchantAddress(e.target.value)} />

@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { BalanceBadge } from "@/components/nostr/verification-badges";
+import { refreshBalance } from "@/lib/verification";
 import { useWalletStore, useTransactionStore } from "@/stores";
 import { LightningAddress } from "@getalby/lightning-tools";
 
@@ -31,6 +33,9 @@ export function NostrSubscriptionsScenario() {
       setCharges(prev => [{ chargedAt: new Date(), amount: amountSats, success: true }, ...prev]);
       addTransaction({ type: "payment_sent", status: "success", description: `Subscription charge: ${amountSats} sats → ${merchantAddress}` });
       addFlowStep({ fromWallet: "buyer", toWallet: "merchant", label: `Auto-charge: ${amountSats} sats`, direction: "right", status: "success" });
+      // Refresh balances after successful charge
+      refreshBalance('bob');
+      refreshBalance('alice');
     } catch (e) {
       setCharges(prev => [{ chargedAt: new Date(), amount: amountSats, success: false }, ...prev]);
       addTransaction({ type: "payment_sent", status: "error", description: `Charge failed: ${String(e)}` });
@@ -62,6 +67,10 @@ export function NostrSubscriptionsScenario() {
           <CardTitle className="flex items-center gap-2 text-sm"><RefreshCw className="h-4 w-4" /> Subscription Config</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <BalanceBadge walletId="bob" label="Bob" />
+            <BalanceBadge walletId="alice" label="Alice" />
+          </div>
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground">Merchant Lightning Address</label>
             <Input value={merchantAddress} onChange={e => setMerchantAddress(e.target.value)} placeholder="merchant@getalby.com" />

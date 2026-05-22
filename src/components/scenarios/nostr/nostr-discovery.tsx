@@ -8,6 +8,7 @@ import { NostrIdentityCard } from "@/components/nostr";
 import { useTransactionStore } from "@/stores";
 import { fetchEvents } from "@/lib/nostr";
 import type { Event as NostrEvent } from "nostr-tools";
+import { EventVerifyLink } from "@/components/nostr/verification-badges";
 
 export function NostrDiscoveryScenario() {
   return (
@@ -75,7 +76,7 @@ function SearchPanel() {
                     <Badge variant="secondary" className="text-xs">{getTag(event, "price") ? `${getTag(event, "price")}` : "—"}</Badge>
                   </div>
                   <p className="text-muted-foreground truncate">{getTag(event, "summary")}</p>
-                  <p className="font-mono text-muted-foreground">{event.pubkey.slice(0, 16)}...</p>
+                  <p className="font-mono text-muted-foreground">{event.pubkey.slice(0, 16)}... · <EventVerifyLink eventId={event.id} /></p>
                 </div>
               ))
             )}

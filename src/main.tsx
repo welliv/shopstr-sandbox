@@ -8,7 +8,7 @@ import "./index.css";
 import App from "./App.tsx";
 
 init({
-  appName: "Alby Sandbox",
+  appName: "Shopstr Sandbox",
   showBalance: true,
 });
 

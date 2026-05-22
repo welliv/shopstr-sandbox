@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Lock, Unlock, Package } from "lucide-react";
+import { EventVerifyLink } from "@/components/nostr/verification-badges";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,6 +29,7 @@ function BuyerPanel() {
   const [message, setMessage] = useState("Please include gift wrapping!");
   const [isSending, setIsSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [wrapEventId, setWrapEventId] = useState<string | null>(null);
 
   const { getPrivateKey, getIdentity } = useNostrStore();
   const { addTransaction, addFlowStep } = useTransactionStore();
@@ -42,6 +44,7 @@ function BuyerPanel() {
     const orderContent = JSON.stringify({ type: 0, items, address, message });
     const wrap = giftWrap(orderContent, buyerKey, merchantIdentity.publicKey);
     setWrap(wrap);
+    setWrapEventId(wrap.id);
 
     addFlowStep({ fromWallet: "buyer", toWallet: "merchant", label: "kind 1059 (gift wrap)", direction: "right", status: "success" });
     addTransaction({ type: "nostr_order_sent", status: "success", description: `Encrypted order sent — relay sees only ephemeral pubkey` });
@@ -82,6 +85,11 @@ function BuyerPanel() {
               <p className="font-medium text-green-700">Order sent — 3 layers of encryption applied:</p>
               <p>1. Rumor (content) → 2. Sealed with buyer key → 3. Wrapped with ephemeral key</p>
               <p className="text-muted-foreground">Relay sees only: kind 1059 from random pubkey, for merchant pubkey</p>
+              {wrapEventId && (
+                <div className="pt-1">
+                  <EventVerifyLink eventId={wrapEventId} label="verify gift wrap event on njump.me" />
+                </div>
+              )}
             </div>
           )}
         </CardContent>

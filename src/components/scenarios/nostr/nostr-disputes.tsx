@@ -8,11 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { NostrIdentityCard } from "@/components/nostr";
 import { useNostrStore, useTransactionStore } from "@/stores";
 import { verifyPreimage } from "@/lib/nostr";
+import { EventVerifyLink } from "@/components/nostr/verification-badges";
+import { verifyEventOnRelay } from "@/lib/verification";
 
 type Resolution = "buyer_wins" | "seller_wins" | "split" | null;
 
-let sharedDispute: { paymentHash: string; reason: string; raised: boolean } | null = null;
+let sharedDispute: { paymentHash: string; reason: string; raised: boolean; eventId?: string } | null = null;
 let sharedResolution: Resolution = null;
+let resolutionEventId: string | null = null;
 const listeners = new Set<() => void>();
 function notify() { listeners.forEach(l => l()); }
 
@@ -37,16 +40,23 @@ function BuyerPanel() {
   const handleRaise = async () => {
     setIsRaising(true);
     try {
-      await publishNostrEvent("buyer", {
+      const result = await publishNostrEvent("buyer", {
         kind: 1984,
         created_at: Math.floor(Date.now() / 1000),
         tags: [["payment_hash", paymentHash], ["type", "dispute"], ["reason", "non-delivery"]],
         content: reason,
       });
-      sharedDispute = { paymentHash, reason, raised: true };
+      sharedDispute = { paymentHash, reason, raised: true, eventId: result.event.id };
       notify();
       addTransaction({ type: "nostr_dispute_raised", status: "success", description: "Dispute raised — kind 1984 published with payment hash" });
       addFlowStep({ fromWallet: "buyer", toWallet: "arbitrator", label: "kind 1984 dispute event", direction: "right", status: "success" });
+
+      setTimeout(async () => {
+        const buyerIdentity = getIdentity("buyer");
+        if (buyerIdentity) {
+          await verifyEventOnRelay(result.event.id, buyerIdentity.publicKey, 1984, 5000);
+        }
+      }, 500);
     } catch (e) {
       addTransaction({ type: "nostr_dispute_raised", status: "error", description: String(e) });
     } finally {
@@ -107,16 +117,25 @@ function ArbitratorPanel() {
   const handleResolve = async (resolution: NonNullable<Resolution>) => {
     const arbitratorIdentity = getIdentity("arbitrator");
     if (!arbitratorIdentity || !sharedDispute) return;
-    await publishNostrEvent("arbitrator", {
+    const result = await publishNostrEvent("arbitrator", {
       kind: 30382,
       created_at: Math.floor(Date.now() / 1000),
       tags: [["d", sharedDispute.paymentHash], ["resolution", resolution], ["payment_hash", sharedDispute.paymentHash]],
       content: `Dispute resolved: ${resolution}. Payment verified via preimage.`,
     });
+    resolutionEventId = result.event.id;
     sharedResolution = resolution;
     notify();
     addTransaction({ type: "nostr_event_published", status: "success", description: `NIP-85 assertion: ${resolution} — permanent on relays` });
     addFlowStep({ fromWallet: "arbitrator", toWallet: "relay", label: `kind 30382 → ${resolution}`, direction: "right", status: "success" });
+
+    // Verify resolution on relay
+    setTimeout(async () => {
+      const arbitratorIdentity = getIdentity("arbitrator");
+      if (arbitratorIdentity) {
+        await verifyEventOnRelay(result.event.id, arbitratorIdentity.publicKey, 30382, 5000);
+      }
+    }, 500);
   };
 
   return (
@@ -160,12 +179,13 @@ function ArbitratorPanel() {
                   </div>
                 </div>
               )}
-              {sharedResolution && (
-                <div className="rounded border border-green-500/20 bg-green-500/5 p-2 text-xs">
-                  <Badge variant="outline" className="text-green-600 mb-1">Resolved: {sharedResolution}</Badge>
-                  <p className="text-muted-foreground">kind 30382 assertion published permanently to relays.</p>
-                </div>
-              )}
+          {sharedResolution && (
+            <div className="rounded border border-green-500/20 bg-green-500/5 p-2 text-xs">
+              <Badge variant="outline" className="text-green-600 mb-1">Resolved: {sharedResolution}</Badge>
+              {resolutionEventId && <EventVerifyLink eventId={resolutionEventId} />}
+              <p className="text-muted-foreground mt-1">kind 30382 assertion published permanently to relays.</p>
+            </div>
+          )}
             </>
           )}
         </CardContent>

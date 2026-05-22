@@ -1,6 +1,26 @@
 import type { Scenario } from "@/types";
 
 export const nostrScenarios: Scenario[] = [
+  // ── FOUNDATION (Bundle) ────────────────────────────────────────────────
+  {
+    id: "foundation",
+    title: "Foundation",
+    description: "Create Nostr identities, connect Lightning wallets, and publish profiles. Your starting point for everything in the sandbox.",
+    education: "Every participant in the Nostr economy starts here. Keypairs are generated in-browser using nostr-tools. NWC wallets connect via standard connection strings. Profiles are published as kind-0 metadata events to three relays simultaneously.",
+    icon: "🏗️",
+    section: "nostr",
+    complexity: "simplest",
+    nips: ["NIP-01", "NIP-07", "NIP-19", "NIP-05", "NIP-47"],
+    requires: [],
+    nostrIdentities: ["merchant", "buyer"],
+    requiresNwc: true,
+    howItWorks: [
+      { title: "Generate keypair", description: "32 bytes of secure randomness → secp256k1 private key" },
+      { title: "Connect NWC wallet", description: "Paste connection string → Lightning wallet linked to identity" },
+      { title: "Get Lightning address", description: "Wallet provider assigns lud16 — doubles as NIP-05 identifier" },
+      { title: "Publish profile", description: "Kind 0 event with name, about, lud16, nip05 → 3+ relays" },
+    ],
+  },
   // ── FOUNDATION ─────────────────────────────────────────────────────────────
   {
     id: "nostr-identity",

@@ -9,7 +9,8 @@ export type SnippetCategory =
   | "fiat"
   | "advanced"
   | "bitcoin-connect"
-  | "402";
+  | "402"
+  | "nostr";
 
 /**
  * Valid snippet IDs - use this type for type-safe snippet references
@@ -63,7 +64,16 @@ export type SnippetId =
   | "bc-pay-button"
   | "bc-launch-payment-modal"
   // 402
-  | "fetch-with-l402";
+  | "fetch-with-l402"
+  // Nostr Commerce
+  | "nostr-skill"
+  | "nostr-manual-install"
+  | "nostr-identity"
+  | "nostr-publish-profile"
+  | "nostr-listing"
+  | "nostr-encrypted-order"
+  | "nostr-escrow"
+  | "nostr-zap-request";
 
 export type CodeLanguage = "javascript" | "typescript" | "bash";
 
@@ -92,6 +102,7 @@ export const SNIPPET_CATEGORIES: {
   { id: "advanced", label: "Advanced", icon: "code" },
   { id: "bitcoin-connect", label: "Bitcoin Connect", icon: "link" },
   { id: "402", label: "402", icon: "lock" },
+  { id: "nostr", label: "Nostr Commerce", icon: "shopping-bag" },
 ];
 
 export const CODE_SNIPPETS: CodeSnippet[] = [
@@ -837,6 +848,225 @@ async function handlePayment(invoice: string) {
   }, 2000)
 }`,
     category: "bitcoin-connect",
+  },
+  // ── Nostr Commerce ────────────────────────────────────────────────────────
+  {
+    id: "nostr-skill",
+    title: "Nostr Commerce Skill",
+    description:
+      "Turn your favorite agent into a Nostr commerce builder. Run the following command inside your project:",
+    category: "nostr",
+    language: "bash",
+    code: `npx skills add welliv/nostr-commerce-skill
+
+# No need to follow the code examples below. Jump directly to the example prompts!`,
+  },
+  {
+    id: "nostr-manual-install",
+    title: "Manual Install",
+    description:
+      "Install the nostr-commerce-skill library. Provides all 22 Nostr commerce scenarios — identity, listings, payments, escrow, reviews, subscriptions, carts, L402, disputes.",
+    category: "nostr",
+    language: "bash",
+    code: `npm install nostr-commerce-skill
+
+# README links:
+# GitHub: https://github.com/welliv/nostr-commerce-skill
+# npm: https://www.npmjs.com/package/nostr-commerce-skill`,
+  },
+  {
+    id: "nostr-identity",
+    title: "Generate Nostr Identity",
+    description:
+      "Create a secp256k1 keypair — the foundation of any Nostr application. The public key (npub) is your permanent address on the relay network.",
+    category: "nostr",
+    code: `import { generateSecretKey, getPublicKey } from "nostr-tools"
+import { npubEncode, nsecEncode } from "nostr-tools/nip19"
+
+// Generate a new keypair
+const privateKey = generateSecretKey()
+const publicKey = getPublicKey(privateKey)
+
+// Encode in bech32 format
+const npub = npubEncode(publicKey)
+const nsec = nsecEncode(privateKey)
+
+console.log("Identity created")
+console.log("npub:", npub)  // share this
+console.log("nsec:", nsec)  // KEEP SECRET — never log or transmit`,
+  },
+  {
+    id: "nostr-publish-profile",
+    title: "Publish Profile (Kind 0)",
+    description:
+      "Publish a kind-0 metadata event to make the identity discoverable. Include lud16 (Lightning address) and nip05 for payments and verification.",
+    category: "nostr",
+    code: `import { finalizeEvent, verifyEvent } from "nostr-tools"
+import { SimplePool } from "nostr-tools/pool"
+
+const pool = new SimplePool()
+
+const profile = {
+  name: "Alice the Merchant",
+  about: "Handmade candles on the Nostr marketplace",
+  picture: "https://example.com/avatar.jpg",
+  lud16: "alice@getalby.com",       // Lightning address for zaps
+  nip05: "alice@getalby.com",       // NIP-05 identifier (same as lud16 typically)
+}
+
+const template = {
+  kind: 0,
+  created_at: Math.floor(Date.now() / 1000),
+  tags: [],
+  content: JSON.stringify(profile),
+}
+
+const event = finalizeEvent(template, privateKey)
+
+if (!verifyEvent(event)) throw new Error("Signature invalid")
+
+const relays = ["wss://relay.damus.io", "wss://relay.nostr.band"]
+const promises = pool.publish(relays, event)
+const results = await Promise.allSettled(promises)
+console.log("Published to", results.filter(r => r.status === "fulfilled").length, "relays")
+pool.close(relays)`,
+  },
+  {
+    id: "nostr-listing",
+    title: "Create Product Listing (Kind 30402)",
+    description:
+      "Publish a product as a kind 30402 classified listing. The d-tag is the stable identifier — republishing with the same d-tag updates the listing.",
+    category: "nostr",
+    code: `import { finalizeEvent } from "nostr-tools"
+
+const listingData = {
+  dTag: "candle-lavender-001",
+  title: "Lavender Candle — Hand Poured",
+  summary: "Soy wax, 40h burn time",
+  content: "Made with organic lavender essential oil...",
+  price: { amount: "8000", currency: "sats" },
+  type: "physical",
+  images: ["https://example.com/candle.jpg"],
+  categories: ["candles", "home"],
+  expiresAt: Math.floor(Date.now() / 1000) + 86400 * 30, // 30 days
+}
+
+const tags = [
+  ["d", listingData.dTag],
+  ["title", listingData.title],
+  ["summary", listingData.summary],
+  ["price", listingData.price.amount, listingData.price.currency],
+  ["type", listingData.type],
+  ["published_at", String(Math.floor(Date.now() / 1000))],
+  ...listingData.images.map(url => ["image", url]),
+  ...listingData.categories.map(c => ["t", c]),
+  ["expiration", String(listingData.expiresAt)],
+]
+
+const template = { kind: 30402, created_at: Math.floor(Date.now() / 1000), tags, content: listingData.content }
+const event = finalizeEvent(template, privateKey)
+console.log("Listing published:", event.id)`,
+  },
+  {
+    id: "nostr-encrypted-order",
+    title: "Send Encrypted Order (NIP-59 Gift Wrap)",
+    description:
+      "Send an encrypted order from buyer to merchant using NIP-59 gift wrap. Three-layer encryption hides the sender from relay operators.",
+    category: "nostr",
+    code: `import { nip44 } from "nostr-tools"
+import { generateSecretKey, getPublicKey, finalizeEvent } from "nostr-tools"
+
+function giftWrap(content, senderPrivkey, recipientPubkey) {
+  // 1. Rumor — the actual message (unsigned)
+  const rumor = { kind: 14, created_at: Math.floor(Date.now() / 1000), tags: [["p", recipientPubkey]], content }
+
+  // 2. Seal — encrypt rumor with sender's key
+  const senderPubkey = getPublicKey(senderPrivkey)
+  const sealKey = nip44.getConversationKey(senderPrivkey, recipientPubkey)
+  const seal = finalizeEvent({
+    kind: 13, created_at: Math.floor(Date.now() / 1000),
+    tags: [], content: nip44.encrypt(JSON.stringify(rumor), sealKey),
+  }, senderPrivkey)
+
+  // 3. Gift wrap — encrypt seal with ephemeral key
+  const ephemeralKey = generateSecretKey()
+  const wrapKey = nip44.getConversationKey(ephemeralKey, recipientPubkey)
+  return finalizeEvent({
+    kind: 1059, created_at: Math.floor(Date.now() / 1000),
+    tags: [["p", recipientPubkey]], content: nip44.encrypt(JSON.stringify(seal), wrapKey),
+  }, ephemeralKey)
+}
+
+const order = { type: 0, items: [{ title: "Lavender Candle", quantity: 2, unitPriceMsats: 8000 }] }
+const wrapped = giftWrap(JSON.stringify(order), buyerPrivkey, merchantPubkey)
+// Publish wrapped event to relays — relay sees only the ephemeral pubkey`,
+  },
+  {
+    id: "nostr-escrow",
+    title: "Hold Invoice Escrow",
+    description:
+      "Create a hold invoice escrow session. Funds are locked until both parties agree to release. Uses NIP-47 NWC with hold invoice support.",
+    category: "nostr",
+    code: `import { nwc } from "@getalby/sdk"
+
+const merchantWallet = new nwc.NWCClient({
+  nostrWalletConnectUrl: process.env.NWC_CONNECTION_URL
+})
+
+// Merchant creates a hold invoice
+const result = await merchantWallet.makeInvoice({
+  amount: 50000,         // 50,000 sats
+  description: "Escrow: Lavender Candle",
+  expiry: 86400,          // 24h hold window
+})
+
+// Store session: { orderId, paymentHash, invoice, amountMsats }
+// Buyer pays the invoice → funds held by LND
+// Merchant ships → reveals preimage → SHA256(preimage) === paymentHash
+// Funds released to merchant
+
+// To settle (merchant after shipping):
+// await lndBackend.settleHoldInvoice(preimage)
+
+// To cancel (buyer if no shipment):
+// await lndBackend.cancelHoldInvoice(paymentHash)`,
+  },
+  {
+    id: "nostr-zap-request",
+    title: "Build Zap Request (NIP-57)",
+    description:
+      "Create a kind 9734 zap request to tip a creator or pay for content. The zap receipt (kind 9735) serves as a permanent proof of payment on relays.",
+    category: "nostr",
+    code: `import { finalizeEvent } from "nostr-tools"
+
+function buildZapRequest(recipientPubkey, amountMsats, comment, senderPrivkey) {
+  return finalizeEvent({
+    kind: 9734,
+    created_at: Math.floor(Date.now() / 1000),
+    tags: [
+      ["p", recipientPubkey],
+      ["amount", String(amountMsats)],
+      ["relays", "wss://relay.damus.io", "wss://relay.nostr.band"],
+    ],
+    content: comment,
+  }, senderPrivkey)
+}
+
+const zapRequest = buildZapRequest(
+  "npub1...",           // recipient
+  21000,                 // 21 sats in msats
+  "Great product!",      // zap comment
+  senderPrivateKey
+)
+console.log("Zap request kind 9734:", zapRequest.id)
+
+// For payment prisms (splits):
+function buildPrism(recipients) {
+  // recipients: [{ pubkey, percentage }, { pubkey, percentage }]
+  const total = recipients.reduce((s, r) => s + r.percentage, 0)
+  if (total !== 100) throw new Error("Percentages must sum to 100")
+  return recipients.map(r => ({ pubkey: r.pubkey, percentage: r.percentage }))
+}`,
   },
 ];
 

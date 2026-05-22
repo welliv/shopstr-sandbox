@@ -20,20 +20,20 @@ export function Layout({ children }: LayoutProps) {
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4 md:hidden">
           <SidebarTrigger className="-ml-2" />
-          <span className="font-semibold">Alby Sandbox</span>
+          <span className="font-semibold">Shopstr Sandbox</span>
         </header>
         <main className="flex-1 overflow-auto">{children}</main>
         <footer className="shrink-0 border-t px-4 py-3 flex items-center justify-center gap-2 text-xs text-muted-foreground/70 flex-wrap">
           <span className="inline-flex items-center gap-1">
             Built with
             <a
-              href="https://github.com/getAlby/builder-skill"
+              href="https://github.com/welliv/nostr-commerce-skill"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
             >
               <BotIcon className="size-3.5" />
-              Alby Bitcoin Builder Skill
+              nostr-commerce-skill
             </a>
           </span>
           <span className="opacity-40">·</span>

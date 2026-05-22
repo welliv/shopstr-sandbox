@@ -48,7 +48,7 @@ export function useDevConsole() {
     if (!hasLoggedWelcome.current) {
       hasLoggedWelcome.current = true;
       console.log(
-        "%c⚡ Alby Sandbox",
+        "%c⚡ Shopstr Sandbox",
         "font-size: 16px; font-weight: bold; color: #F7931A; background: #1a1a2e; padding: 4px 8px; border-radius: 4px;",
       );
       console.log(

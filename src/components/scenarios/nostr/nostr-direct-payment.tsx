@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Zap, Receipt, Loader2 } from "lucide-react";
+import { BalanceBadge, PreimageProof, EventVerifyLink } from "@/components/nostr/verification-badges";
+import { refreshBalance } from "@/lib/verification";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +29,7 @@ function MerchantPanel() {
   const [invoice, setInvoice] = useState<string | null>(null);
   const [paymentHash, setPaymentHash] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [zapEventId, setZapEventId] = useState<string | null>(null);
 
   const { getNWCClient } = useWalletStore();
   const { getIdentity, getPrivateKey } = useNostrStore();
@@ -52,6 +55,7 @@ function MerchantPanel() {
         description,
         privkey
       );
+      setZapEventId(zapReq.id);
       addTransaction({ type: "nostr_event_published", status: "success", description: `kind 9734 zap request published (amount: ${amount} sats)`, metadata: { eventKind: zapReq.kind, eventId: zapReq.id } });
       addFlowStep({ fromWallet: "merchant", toWallet: "buyer", label: `Invoice: ${amount} sats`, direction: "right", status: "success" });
     } catch (e) {
@@ -84,6 +88,11 @@ function MerchantPanel() {
             <div className="space-y-2">
               <div className="rounded bg-muted/50 p-2 text-xs font-mono break-all text-muted-foreground">{invoice.slice(0, 40)}...</div>
               <div className="text-xs text-muted-foreground">Payment hash: <span className="font-mono">{paymentHash?.slice(0, 16)}...</span></div>
+              {zapEventId && (
+                <div className="text-xs">
+                  <EventVerifyLink eventId={zapEventId} label="verify zap request on njump.me" />
+                </div>
+              )}
             </div>
           )}
         </CardContent>
@@ -112,6 +121,8 @@ function BuyerPanel() {
         setPreimage(lookup.preimage);
         addTransaction({ type: "payment_sent", status: "success", description: "Payment confirmed via NWC lookup" });
         addFlowStep({ fromWallet: "buyer", toWallet: "merchant", label: "Payment confirmed ⚡", direction: "right", status: "success" });
+        refreshBalance("alice");
+        refreshBalance("bob");
         notify();
       } else {
         addTransaction({ type: "payment_sent", status: "error", description: "Invoice not paid yet" });
@@ -143,8 +154,12 @@ function BuyerPanel() {
               {preimage && (
                 <div className="rounded border border-green-500/20 bg-green-500/5 p-2 text-xs space-y-1">
                   <Badge variant="outline" className="text-green-600">✓ Paid</Badge>
-                  <p>Preimage: <span className="font-mono">{preimage.slice(0, 20)}...</span></p>
-                  <p className="text-muted-foreground">This preimage is cryptographic proof of payment.</p>
+                  <div className="flex gap-2">
+                    <BalanceBadge walletId="alice" label="Alice" />
+                    <BalanceBadge walletId="bob" label="Bob" />
+                  </div>
+                  <PreimageProof preimage={preimage} paymentHash={sharedPaymentHash ?? ""} autoVerify />
+                  <p className="text-muted-foreground">SHA256 verification confirms payment is cryptographically provable.</p>
                 </div>
               )}
             </>

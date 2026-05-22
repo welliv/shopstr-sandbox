@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { NostrIdentityCard } from "@/components/nostr";
 import { useNostrStore, useWalletStore, useTransactionStore } from "@/stores";
 import { verifyPreimage } from "@/lib/nostr";
+import { BalanceBadge, EventVerifyLink } from "@/components/nostr/verification-badges";
+import { refreshBalance, verifyEventOnRelay } from "@/lib/verification";
 
 export function NostrReviewsScenario() {
   return (
@@ -18,7 +20,7 @@ export function NostrReviewsScenario() {
   );
 }
 
-interface Review { rating: number; content: string; preimage: string; buyerNpub: string; verified: boolean; }
+interface Review { rating: number; content: string; preimage: string; buyerNpub: string; verified: boolean; eventId: string; }
 let reviews: Review[] = [];
 const listeners = new Set<() => void>();
 function notify() { listeners.forEach(l => l()); }
@@ -52,7 +54,10 @@ function BuyerPanel() {
       const privkey = getPrivateKey("buyer");
       if (!privkey || !valid) throw new Error("Preimage verification failed");
 
-      await publishNostrEvent("buyer", {
+      await refreshBalance('alice');
+      await refreshBalance('bob');
+
+      const result = await publishNostrEvent("buyer", {
         kind: 31990,
         created_at: Math.floor(Date.now() / 1000),
         tags: [
@@ -63,9 +68,12 @@ function BuyerPanel() {
         content,
       });
 
-      reviews = [{ rating, content, preimage: pimage, buyerNpub: buyerIdentity?.npub ?? "", verified: true }, ...reviews];
+      const revEventId = result.event.id;
+      const verified = await verifyEventOnRelay(revEventId, buyerIdentity?.publicKey ?? "", 31990, 4000);
+
+      reviews = [{ rating, content, preimage: pimage, buyerNpub: buyerIdentity?.npub ?? "", verified: true, eventId: revEventId }, ...reviews];
       notify();
-      addTransaction({ type: "nostr_review_published", status: "success", description: `Review published with preimage gate (${rating}★)` });
+      addTransaction({ type: "nostr_review_published", status: "success", description: `Review published with preimage gate (${rating}★) — relay ${verified ? "confirmed" : "verification pending"}` });
       addFlowStep({ fromWallet: "buyer", toWallet: "merchant", label: "kind 31990 + preimage", direction: "right", status: "success" });
     } catch (e) {
       addTransaction({ type: "nostr_review_published", status: "error", description: String(e) });
@@ -77,6 +85,10 @@ function BuyerPanel() {
   return (
     <div className="space-y-4">
       <NostrIdentityCard role="buyer" label="Bob (Buyer)" emoji="👨‍🦱" />
+      <div className="flex gap-2 items-center mb-2">
+        <BalanceBadge walletId="alice" label="Alice (Merchant)" />
+        <BalanceBadge walletId="bob" label="Bob (Buyer)" />
+      </div>
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-sm"><Star className="h-4 w-4" /> Write Verified Review</CardTitle>
@@ -128,6 +140,7 @@ function ReviewFeedPanel() {
                 </div>
                 <p className="text-sm">{r.content}</p>
                 <p className="text-xs text-muted-foreground font-mono">{r.buyerNpub.slice(0, 20)}...</p>
+                {r.eventId && <EventVerifyLink eventId={r.eventId} label="verify on njump.me" />}
               </div>
             ))}
           </div>

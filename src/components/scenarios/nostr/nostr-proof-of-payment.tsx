@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useWalletStore, useTransactionStore } from "@/stores";
 import { verifyPreimage } from "@/lib/nostr";
+import { BalanceBadge } from "@/components/nostr/verification-badges";
+import { refreshBalance } from "@/lib/verification";
 
 export function NostrProofOfPaymentScenario() {
   return (
@@ -52,6 +54,8 @@ function CreateInvoicePanel() {
       const result = await client.payInvoice({ invoice });
       const pimage = result.preimage;
       setPreimage(pimage);
+      await refreshBalance("alice");
+      await refreshBalance("bob");
       addFlowStep({ fromWallet: "bob", toWallet: "alice", label: "Payment + preimage returned", direction: "right", status: "success" });
       addTransaction({ type: "payment_sent", status: "success", description: `Paid — preimage: ${pimage?.slice(0, 16)}...` });
     } catch (e) {
@@ -64,7 +68,13 @@ function CreateInvoicePanel() {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-sm"><Hash className="h-4 w-4" /> Create + Pay Invoice</CardTitle>
+        <div className="flex items-center gap-2 justify-between">
+          <CardTitle className="flex items-center gap-2 text-sm"><Hash className="h-4 w-4" /> Create + Pay Invoice</CardTitle>
+          <div className="flex gap-2">
+            <BalanceBadge walletId="alice" label="Alice" />
+            <BalanceBadge walletId="bob" label="Bob" />
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="space-y-1">

@@ -13,6 +13,7 @@ import {
   Play,
   Link,
   ShieldCheck,
+  ShoppingBag,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CodeHighlight } from '@/components/ui/code-highlight';
@@ -38,6 +39,7 @@ const CATEGORY_ICONS: Record<SnippetCategory, React.ReactNode> = {
   advanced: <Code className="h-4 w-4" />,
   'bitcoin-connect': <Link className="h-4 w-4" />,
   '402': <ShieldCheck className="h-4 w-4" />,
+  nostr: <ShoppingBag className="h-4 w-4" />,
 };
 
 export function CodeSnippets() {
